@@ -1,122 +1,162 @@
 import tkinter as tk
+import ast
+import operator
 
-def get_inputs():
+OPERATIONS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.USub: operator.neg,
+}
+
+
+def solve(node):
+    if isinstance(node, ast.Expression):
+        return solve(node.body)
+
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        return node.value
+
+    if isinstance(node, ast.BinOp) and type(node.op) in OPERATIONS:
+        return OPERATIONS[type(node.op)](solve(node.left), solve(node.right))
+
+    if isinstance(node, ast.UnaryOp) and type(node.op) in OPERATIONS:
+        return OPERATIONS[type(node.op)](solve(node.operand))
+
+    raise ValueError
+
+
+def add_to_display(value):
+    display.insert(tk.END, value)
+    display.focus()
+
+
+def calculate(event=None):
     try:
-        a = float(first_number_entry.get())
-        b = float(second_number_entry.get())
-        return a, b
-    except ValueError:
-        result_label.config(text="Please enter valid numbers.")
-        return None, None
+        expression = display.get()
+        result = solve(ast.parse(expression, mode="eval"))
 
-def add():
-    a, b = get_inputs()
-    if a is None:
-        return
-    result_label.config(text=f"Result: {a + b}")
+        if isinstance(result, float) and result.is_integer():
+            result = int(result)
 
-def subtract():
-    a, b = get_inputs()
-    if a is None:
-        return
-    result_label.config(text=f"Result: {a - b}")
+        display.delete(0, tk.END)
+        display.insert(0, result)
+    except ZeroDivisionError:
+        show_error("Cannot divide by zero")
+    except (SyntaxError, ValueError, TypeError):
+        show_error("Invalid calculation")
 
-def multiply():
-    a, b = get_inputs()
-    if a is None:
-        return
-    result_label.config(text=f"Result: {a * b}")
 
-def divide():
-    a, b = get_inputs()
-    if a is None:
-        return
-    if b == 0:
-        result_label.config(text="Error: Division by zero is not allowed.")
-        return
-    result_label.config(text=f"Result: {a / b}")
+def show_error(message):
+    display.delete(0, tk.END)
+    display.insert(0, message)
 
-def clear():
-    first_number_entry.delete(0, tk.END)
-    second_number_entry.delete(0, tk.END)
-    result_label.config(text="Result")
 
-def show_shortcuts():
-    # prevent multiple windows
-    if getattr(window, 'shortcuts_win', None) and tk.Toplevel.winfo_exists(window.shortcuts_win):
-        window.shortcuts_win.lift()
-        return
+def clear(event=None):
+    display.delete(0, tk.END)
+    display.focus()
 
-    win = tk.Toplevel(window)
-    window.shortcuts_win = win
-    win.title("Keyboard Shortcuts")
-    win.resizable(False, False)
-    win.transient(window)
-    shortcuts_text = (
-        "Enter / KP Enter: Add\n"
-        "Ctrl+A: Add\n"
-        "Ctrl+S: Subtract\n"
-        "Ctrl+M: Multiply\n"
-        "Ctrl+D: Divide\n"
-        "Ctrl+L: Clear"
-    )
-    lbl = tk.Label(win, text=shortcuts_text, justify='left', padx=12, pady=8)
-    lbl.pack()
-    btn = tk.Button(win, text="Close", command=lambda: (win.destroy(), setattr(window, 'shortcuts_win', None)))
-    btn.pack(pady=(0,8))
+
+def backspace():
+    current_text = display.get()
+    display.delete(0, tk.END)
+    display.insert(0, current_text[:-1])
+
 
 window = tk.Tk()
-window.attributes('-topmost', True)
+window.attributes("-topmost", True)
 window.title("Simple Calculator")
-window.geometry("300x330")
+window.geometry("330x420")
+window.resizable(False, False)
+window.configure(bg="#263238")
 
-title_label = tk.Label(window, text="Simple Calculator", font=("Arial", 20))
-title_label.pack(pady=12)
+title_label = tk.Label(
+    window,
+    text="Simple Calculator",
+    font=("Arial", 20, "bold"),
+    bg="#263238",
+    fg="white",
+)
+title_label.pack(pady=(18, 12))
 
-# Shortcuts button (opens popup)
-shortcuts_button = tk.Button(window, text="Shortcuts", font=("Arial", 9), command=show_shortcuts)
-shortcuts_button.pack(pady=4)
+display = tk.Entry(
+    window,
+    font=("Arial", 22),
+    justify="right",
+    bg="#d8f3dc",
+    fg="#102a13",
+    insertbackground="#102a13",
+    relief="flat",
+    bd=8,
+)
+display.pack(fill="x", padx=18, pady=(0, 14), ipady=10)
+display.focus()
 
-first_number_entry = tk.Entry(window, font=("Arial", 16))
-first_number_entry.pack(pady=6)
+button_frame = tk.Frame(window, bg="#263238")
+button_frame.pack(padx=14)
 
-second_number_entry = tk.Entry(window, font=("Arial", 16))
-second_number_entry.pack(pady=6)
+buttons = [
+    ("7", "7"), ("8", "8"), ("9", "9"), ("÷", "/"),
+    ("4", "4"), ("5", "5"), ("6", "6"), ("×", "*"),
+    ("1", "1"), ("2", "2"), ("3", "3"), ("−", "-"),
+    ("0", "0"), (".", "."), ("=", "="), ("+", "+"),
+]
 
-add_button = tk.Button(window, text="Add", command=add)
+for index, (label, value) in enumerate(buttons):
+    row = index // 4
+    column = index % 4
 
-# Arrange buttons in a grid inside a frame for a cleaner layout
-button_frame = tk.Frame(window)
-button_frame.pack(pady=6)
+    if value == "=":
+        command = calculate
+        color = "#ffb703"
+    else:
+        command = lambda item=value: add_to_display(item)
+        color = "#546e7a" if value in "+-*/" else "#455a64"
 
-add_button = tk.Button(button_frame, text="Add", command=add)
-add_button.grid(row=0, column=0, padx=6, pady=4)
+    button = tk.Button(
+        button_frame,
+        text=label,
+        command=command,
+        font=("Arial", 16, "bold"),
+        width=4,
+        height=2,
+        bg=color,
+        fg="#263238",
+        activebackground="#263238",
+        activeforeground="#263238",
+        relief="flat",
+    )
+    button.grid(row=row, column=column, padx=4, pady=4)
 
-subtract_button = tk.Button(button_frame, text="Subtract", command=subtract)
-subtract_button.grid(row=0, column=1, padx=6, pady=4)
+clear_button = tk.Button(
+    button_frame,
+    text="Clear",
+    command=clear,
+    font=("Arial", 14, "bold"),
+    bg="#d1495b",
+    fg="#263238",
+    activebackground="#9d2f3f",
+    activeforeground="#263238",
+    relief="flat",
+)
+clear_button.grid(row=4, column=0, columnspan=3, sticky="ew", padx=4, pady=4)
 
-multiply_button = tk.Button(button_frame, text="Multiply", command=multiply)
-multiply_button.grid(row=1, column=0, padx=6, pady=4)
+backspace_button = tk.Button(
+    button_frame,
+    text="⌫",
+    command=backspace,
+    font=("Arial", 16, "bold"),
+    bg="#607d8b",
+    fg="#263238",
+    activebackground="#263238",
+    activeforeground="#263238",
+    relief="flat",
+)
+backspace_button.grid(row=4, column=3, sticky="ew", padx=4, pady=4)
 
-divide_button = tk.Button(button_frame, text="Divide", command=divide)
-divide_button.grid(row=1, column=1, padx=6, pady=4)
-
-clear_button = tk.Button(button_frame, text="Clear", command=clear)
-clear_button.grid(row=2, column=0, columnspan=2, pady=6)
-
-result_label = tk.Label(window, text="Result", font=("Arial", 16))
-result_label.pack(pady=12)
-
-# Keyboard shortcuts (non-intrusive):
-# - Enter / keypad Enter -> Add
-# - Ctrl+A -> Add, Ctrl+S -> Subtract, Ctrl+M -> Multiply, Ctrl+D -> Divide
-# - Ctrl+L -> Clear
-window.bind('<Return>', lambda e: add())
-window.bind('<KP_Enter>', lambda e: add())
-window.bind('<Control-a>', lambda e: add())
-window.bind('<Control-s>', lambda e: subtract())
-window.bind('<Control-m>', lambda e: multiply())
-window.bind('<Control-d>', lambda e: divide())
-window.bind('<Control-l>', lambda e: clear())
+window.bind("<Return>", calculate)
+window.bind("<KP_Enter>", calculate)
+window.bind("<Escape>", clear)
 
 window.mainloop()
