@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+*.xcf
+node_modules/
+dist/
+.vite-dev.log
+.vite-dev.err.log
