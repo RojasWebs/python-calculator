@@ -166,20 +166,35 @@ export default function App() {
         <div className="card-glow" aria-hidden="true" />
         <header className="hero">
           <div className="brand-row">
-            <div className="brand-copy">
-              <p className="eyebrow">React Conversion</p>
-              <h1>Calc by RojasWebs</h1>
-              <p className="hero-copy">
-                A streamlined browser remake of the Tkinter calculator with safe expression
-                parsing and keyboard shortcuts.
-              </p>
-            </div>
-            <img className="brand-logo" src={logo} alt="Rojas Webs logo" />
+            <a className="brand-link" href="https://rojaswebs.com" target="_blank" rel="noreferrer">
+              <div className="brand-copy">
+                <p className="eyebrow">RojasWebs</p>
+                <h1>Calc by RojasWebs</h1>
+                <p className="hero-copy">
+                  Fast, clean calculator for everyday math with keyboard support, live previews,
+                  and a layout that works across desktop and mobile.
+                </p>
+              </div>
+              <img className="brand-logo" src={logo} alt="Rojas Webs logo" />
+            </a>
           </div>
           <div className="shortcut-row" aria-label="Keyboard shortcuts">
-            <span>Enter to solve</span>
-            <span>Escape to clear</span>
-            <span>Ctrl+Backspace to undo</span>
+            <button type="button" className="shortcut-chip" onClick={handleCalculate}>
+              Enter to solve
+            </button>
+            <button type="button" className="shortcut-chip" onClick={handleClear}>
+              Escape to clear
+            </button>
+            <button
+              type="button"
+              className="shortcut-chip"
+              onClick={() => {
+                setExpression((current) => removeLastChunk(current));
+                setError("");
+              }}
+            >
+              Ctrl+Backspace to undo
+            </button>
           </div>
         </header>
 
@@ -270,6 +285,16 @@ export default function App() {
             </div>
           </aside>
         </div>
+
+        <footer className="site-credit" aria-label="Site credit">
+          <a className="credit-brand" href="https://rojaswebs.com" target="_blank" rel="noreferrer">
+            <img className="credit-logo" src={logo} alt="Rojas Webs logo" />
+            <span className="credit-title credit-link">Created by RojasWebs</span>
+          </a>
+          <p className="credit-copy">
+            A lightweight calculator built for quick problem solving on desktop and phone.
+          </p>
+        </footer>
       </section>
     </main>
   );
